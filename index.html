@@ -384,6 +384,36 @@ function showQuestion() {
   }
 }
 
+// ── sound effects ─────────────────────────────────────────────────────────
+function playCorrect() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  [[880, 0.00, 0.18], [1109, 0.20, 0.38]].forEach(([freq, start, end]) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.35, ctx.currentTime + start);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + end);
+    osc.start(ctx.currentTime + start);
+    osc.stop(ctx.currentTime + end);
+  });
+}
+
+function playWrong() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(220, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.3);
+  gain.gain.setValueAtTime(0.3, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + 0.3);
+}
+
 function checkAnswer(idx) {
   if (answered) return;
   answered = true;
@@ -395,11 +425,13 @@ function checkAnswer(idx) {
 
   if (idx === correctIdx) {
     score++;
+    playCorrect();
     document.getElementById(`opt${idx}`).classList.add('correct');
     document.getElementById('feedback').textContent = `정답!  ${q[0]} = ${q[1]}  ${q[2]}`;
     document.getElementById('feedback').style.color = 'var(--correct)';
     confirmBtn.textContent = '다음 문제  →';
   } else {
+    playWrong();
     document.getElementById(`opt${idx}`).classList.add('wrong');
     document.getElementById(`opt${correctIdx}`).classList.add('correct');
     document.getElementById('feedback').textContent = `오답!  정답:  ${q[0]} = ${q[1]}  ${q[2]}`;
