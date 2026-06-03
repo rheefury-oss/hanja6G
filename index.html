@@ -442,6 +442,7 @@ let answered=false,correctIdx=0,currentGrade=null;
 
 // ── 급수 선택 ────────────────────────────────────────
 function startGame(grade){
+  initAudio(); // 첫 터치 시점에 AudioContext 활성화
   currentGrade=grade;
   document.getElementById('grade-screen').style.display='none';
   document.getElementById('quiz-screen').style.display='flex';
@@ -535,7 +536,7 @@ function showSA(d){
 function setSent(d){
   document.getElementById('lbl-prompt').textContent='파란색 한자 단어의 소리는?';
   document.getElementById('lbl-hanja').style.display='none';
-  document.getElementById('sentence-wrap').style.display='';
+  document.getElementById('sentence-wrap').style.display='block';
   document.getElementById('sentence-text').innerHTML=
     d.t.replace(/\{(.+?)\}/g,(_,w)=>`<span class="word-hl">${w}</span>`);
 }
@@ -637,28 +638,42 @@ function showResult(){
 }
 
 // ── 효과음 ───────────────────────────────────────────
+// 단일 AudioContext 재사용 (Android: 매번 생성 시 suspended 문제 방지)
+let _ac = null;
+function getAC() {
+  if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
+  return _ac;
+}
+function initAudio() {
+  try { getAC().resume(); } catch(e) {}
+}
+
 function playCorrect(){
   try{
-    const c=new(window.AudioContext||window.webkitAudioContext)();
-    [[880,0,.18],[1109,.2,.38]].forEach(([f,s,e])=>{
-      const o=c.createOscillator(),g=c.createGain();
-      o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=f;
-      g.gain.setValueAtTime(.35,c.currentTime+s);
-      g.gain.exponentialRampToValueAtTime(.001,c.currentTime+e);
-      o.start(c.currentTime+s);o.stop(c.currentTime+e);
+    const c=getAC();
+    c.resume().then(()=>{
+      [[880,0,.18],[1109,.2,.38]].forEach(([f,s,e])=>{
+        const o=c.createOscillator(),g=c.createGain();
+        o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=f;
+        g.gain.setValueAtTime(.35,c.currentTime+s);
+        g.gain.exponentialRampToValueAtTime(.001,c.currentTime+e);
+        o.start(c.currentTime+s);o.stop(c.currentTime+e);
+      });
     });
   }catch(e){}
 }
 function playWrong(){
   try{
-    const c=new(window.AudioContext||window.webkitAudioContext)();
-    const o=c.createOscillator(),g=c.createGain();
-    o.connect(g);g.connect(c.destination);o.type='sawtooth';
-    o.frequency.setValueAtTime(220,c.currentTime);
-    o.frequency.exponentialRampToValueAtTime(110,c.currentTime+.3);
-    g.gain.setValueAtTime(.3,c.currentTime);
-    g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.3);
-    o.start(c.currentTime);o.stop(c.currentTime+.3);
+    const c=getAC();
+    c.resume().then(()=>{
+      const o=c.createOscillator(),g=c.createGain();
+      o.connect(g);g.connect(c.destination);o.type='sawtooth';
+      o.frequency.setValueAtTime(220,c.currentTime);
+      o.frequency.exponentialRampToValueAtTime(110,c.currentTime+.3);
+      g.gain.setValueAtTime(.3,c.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.3);
+      o.start(c.currentTime);o.stop(c.currentTime+.3);
+    });
   }catch(e){}
 }
 
