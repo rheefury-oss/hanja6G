@@ -10,10 +10,9 @@
   <meta name="apple-mobile-web-app-title" content="한자퀴즈">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <title>한자 퀴즈 6급</title>
+  <title>한자 퀴즈</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
       --bg:      #1e1e2e;
       --card:    #2a2a3e;
@@ -24,469 +23,659 @@
       --text:    #e0e0f0;
       --sub:     #8888aa;
     }
-
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
-
-    #app {
-      max-width: 480px;
-      margin: 0 auto;
-      min-height: 100%;
-      display: flex;
+    html, body { height: 100%; background: var(--bg); color: var(--text);
+      font-family: 'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+      -webkit-tap-highlight-color: transparent; user-select: none; }
+    #app { max-width: 480px; margin: 0 auto; min-height: 100%; display: flex;
       flex-direction: column;
-      padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
-    }
+      padding: env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0); }
+
+    /* ── grade selection ── */
+    #grade-screen { display:flex; flex-direction:column; align-items:center;
+      justify-content:center; flex:1; padding:28px 20px; }
+    #grade-screen h1 { font-size:28px; font-weight:700; margin-bottom:4px; }
+    #grade-screen .sub { font-size:13px; color:var(--sub); margin-bottom:28px; }
+    .grade-btn { width:100%; background:var(--card); color:var(--text);
+      border:2px solid var(--btn); border-radius:16px; padding:18px 20px;
+      margin:7px 0; text-align:left; cursor:pointer; font-family:inherit;
+      transition:border-color .15s, transform .1s; }
+    .grade-btn:active { transform:scale(.97); border-color:var(--accent); }
+    .grade-btn .gt { font-size:17px; font-weight:700; }
+    .grade-btn .gd { font-size:12px; color:var(--sub); margin-top:3px; }
 
     /* ── progress bar ── */
-    #progress-bar-wrap { height: 5px; background: var(--card); flex-shrink: 0; }
-    #progress-bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width .35s ease; }
-
+    #progress-bar-wrap { height:5px; background:var(--card); flex-shrink:0; }
+    #progress-bar-fill { height:100%; background:var(--accent); width:0%;
+      transition:width .35s ease; }
     /* ── header ── */
-    #header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px 20px 10px;
-      flex-shrink: 0;
-    }
-    #lbl-progress { font-size: 13px; color: var(--sub); }
-    #lbl-score    { font-size: 13px; font-weight: 700; color: var(--accent); }
-
-    /* ── hanja card ── */
-    #card {
-      margin: 0 16px;
-      background: var(--card);
-      border-radius: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px 16px 24px;
-      flex-shrink: 0;
-    }
-    #lbl-prompt { font-size: 13px; color: var(--sub); margin-bottom: 10px; }
-    #lbl-hanja  {
-      font-size: clamp(88px, 22vw, 120px);
-      font-weight: 700;
-      line-height: 1;
-      color: #fff;
-    }
-
+    #header { display:flex; justify-content:space-between; align-items:center;
+      padding:12px 20px 8px; flex-shrink:0; }
+    #lbl-progress { font-size:13px; color:var(--sub); }
+    #lbl-score    { font-size:13px; font-weight:700; color:var(--accent); }
+    /* ── type badge ── */
+    #type-badge { text-align:center; flex-shrink:0; padding-bottom:6px; }
+    .badge { display:inline-block; font-size:11px; font-weight:700;
+      padding:3px 10px; border-radius:20px; letter-spacing:.5px; }
+    .badge-char { background:#3a2a6e; color:#b09fff; }
+    .badge-mc   { background:#1a3a2e; color:#5fd4a0; }
+    .badge-sa   { background:#3a2a1e; color:#f4b96a; }
+    /* ── card ── */
+    #card { margin:0 16px; background:var(--card); border-radius:20px;
+      display:flex; flex-direction:column; align-items:center;
+      padding:16px 20px 20px; flex-shrink:0; min-height:155px; justify-content:center; }
+    #lbl-prompt { font-size:12px; color:var(--sub); margin-bottom:10px; }
+    #lbl-hanja  { font-size:clamp(80px,20vw,108px); font-weight:700; line-height:1; color:#fff; }
+    #sentence-wrap { display:none; width:100%; }
+    .sent-text { font-size:18px; line-height:1.9; text-align:center;
+      color:var(--text); word-break:keep-all; }
+    .word-hl { color:#a0e0ff; font-weight:700;
+      border-bottom:2px solid #a0e0ff; padding-bottom:1px; }
     /* ── feedback ── */
-    #feedback {
-      text-align: center;
-      font-size: 15px;
-      font-weight: 700;
-      min-height: 26px;
-      padding: 12px 16px 4px;
-      flex-shrink: 0;
-    }
-
-    /* ── options ── */
-    #options {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      padding: 8px 16px;
-      flex-shrink: 0;
-    }
-    .opt-btn {
-      background: var(--btn);
-      color: var(--text);
-      border: none;
-      border-radius: 14px;
-      padding: 16px 8px;
-      font-size: 15px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: background .15s, transform .1s;
-      line-height: 1.4;
-      word-break: keep-all;
-    }
-    .opt-btn:active { transform: scale(.96); }
-    .opt-btn.correct { background: var(--correct); color: #fff; }
-    .opt-btn.wrong   { background: var(--wrong);   color: #fff; }
-    .opt-btn:disabled { cursor: default; }
-
-    /* ── confirm/next button ── */
-    #btn-confirm {
-      display: none;
-      margin: 10px 16px 0;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 14px;
-      padding: 16px;
-      font-size: 16px;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
-      width: calc(100% - 32px);
-      transition: background .15s, transform .1s;
-    }
-    #btn-confirm:active { transform: scale(.97); background: #6a5ae0; }
-
-    /* spacer */
-    .spacer { flex: 1; }
-
-    /* ── result screen ── */
-    #result {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      flex: 1;
-      padding: 32px 24px;
-      text-align: center;
-    }
-    #result h1 { font-size: 28px; margin-bottom: 12px; }
-    #result .big-score {
-      font-size: 72px;
-      font-weight: 700;
-      color: var(--accent);
-      line-height: 1;
-    }
-    #result .out-of { font-size: 18px; color: var(--sub); margin: 4px 0 16px; }
-    #result .grade  { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
-    #result .msg    { font-size: 15px; color: var(--sub); margin-bottom: 36px; }
-    #btn-restart {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 14px;
-      padding: 16px 40px;
-      font-size: 17px;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
-      transition: background .15s;
-    }
-    #btn-restart:active { background: #6a5ae0; }
+    #feedback { text-align:center; font-size:14px; font-weight:700;
+      min-height:22px; padding:9px 16px 2px; flex-shrink:0; }
+    /* ── MC options ── */
+    #options { display:grid; grid-template-columns:1fr 1fr; gap:9px;
+      padding:8px 16px; flex-shrink:0; }
+    .opt-btn { background:var(--btn); color:var(--text); border:none;
+      border-radius:14px; padding:14px 8px; font-size:14px; font-family:inherit;
+      cursor:pointer; transition:background .15s, transform .1s;
+      line-height:1.4; word-break:keep-all; }
+    .opt-btn:active { transform:scale(.96); }
+    .opt-btn.correct { background:var(--correct); color:#fff; }
+    .opt-btn.wrong   { background:var(--wrong);   color:#fff; }
+    .opt-btn:disabled { cursor:default; }
+    /* ── SA (short answer) ── */
+    #sa-wrap { display:none; padding:8px 16px 0; flex-shrink:0; }
+    #sa-input { width:100%; font-size:22px; padding:13px; border-radius:12px;
+      background:var(--bg); color:var(--text); border:2px solid var(--btn);
+      outline:none; text-align:center; font-family:inherit; }
+    #sa-input:focus { border-color:var(--accent); }
+    #btn-submit { display:none; width:calc(100% - 32px); margin:8px 16px 0;
+      background:#2a3a4a; color:#8adcff; border:none; border-radius:14px;
+      padding:14px; font-size:15px; font-weight:700; font-family:inherit;
+      cursor:pointer; transition:background .15s; }
+    #btn-submit:active { background:#1a2a3a; }
+    /* ── confirm / next ── */
+    #btn-confirm { display:none; margin:8px 16px 0; background:var(--accent);
+      color:#fff; border:none; border-radius:14px; padding:15px;
+      font-size:15px; font-weight:700; font-family:inherit; cursor:pointer;
+      width:calc(100% - 32px); transition:background .15s, transform .1s; }
+    #btn-confirm:active { transform:scale(.97); background:#6a5ae0; }
+    .spacer { flex:1; }
+    /* ── result ── */
+    #result { display:none; flex-direction:column; align-items:center;
+      justify-content:center; flex:1; padding:28px 24px; text-align:center; }
+    #result h1 { font-size:24px; margin-bottom:16px; }
+    .res-big { font-size:64px; font-weight:700; color:var(--accent); line-height:1; }
+    .res-sub { font-size:15px; color:var(--sub); margin:4px 0 16px; }
+    .res-breakdown { background:var(--card); border-radius:16px; padding:16px 24px;
+      width:100%; margin-bottom:16px; text-align:left; }
+    .res-row { display:flex; justify-content:space-between; font-size:14px;
+      padding:4px 0; }
+    .res-row .label { color:var(--sub); }
+    .res-row .val   { font-weight:700; }
+    .res-grade { font-size:20px; font-weight:700; margin-bottom:4px; }
+    .res-msg   { font-size:14px; color:var(--sub); margin-bottom:24px; }
+    #btn-restart { background:var(--accent); color:#fff; border:none;
+      border-radius:14px; padding:14px 36px; font-size:16px; font-weight:700;
+      font-family:inherit; cursor:pointer; margin-right:10px; }
+    #btn-grade { background:var(--btn); color:var(--text); border:none;
+      border-radius:14px; padding:14px 20px; font-size:15px; font-weight:700;
+      font-family:inherit; cursor:pointer; }
   </style>
 </head>
 <body>
 <div id="app">
-  <!-- quiz screen -->
-  <div id="quiz-screen" style="display:flex;flex-direction:column;flex:1;">
-    <div id="progress-bar-wrap"><div id="progress-bar-fill"></div></div>
 
-    <div id="header">
-      <span id="lbl-progress">문제 1 / 20</span>
-      <span id="lbl-score">정답 0</span>
-    </div>
-
-    <div id="card">
-      <div id="lbl-prompt">이 한자의 뜻과 소리는?</div>
-      <div id="lbl-hanja">漢</div>
-    </div>
-
-    <div id="feedback"></div>
-
-    <div id="options">
-      <button class="opt-btn" id="opt0" onclick="checkAnswer(0)"></button>
-      <button class="opt-btn" id="opt1" onclick="checkAnswer(1)"></button>
-      <button class="opt-btn" id="opt2" onclick="checkAnswer(2)"></button>
-      <button class="opt-btn" id="opt3" onclick="checkAnswer(3)"></button>
-    </div>
-
-    <button id="btn-confirm" onclick="nextQuestion()"></button>
-    <div class="spacer"></div>
-  </div>
-
-  <!-- result screen -->
-  <div id="result">
-    <h1>퀴즈 완료!</h1>
-    <div class="big-score" id="res-score"></div>
-    <div class="out-of" id="res-outof"></div>
-    <div class="grade"  id="res-grade"></div>
-    <div class="msg"    id="res-msg"></div>
-    <button id="btn-restart" onclick="startGame()">다시 시작</button>
+<!-- ① 급수 선택 -->
+<div id="grade-screen" style="display:flex;flex-direction:column;flex:1;">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;">
+    <h1 style="font-size:28px;font-weight:700;margin-bottom:4px;">한자 퀴즈</h1>
+    <p style="font-size:13px;color:var(--sub);margin-bottom:28px;">급수를 선택하세요</p>
+    <button class="grade-btn" onclick="startGame('lv6')">
+      <div class="gt">6급</div>
+      <div class="gd">한국어문회 6급 배정 300자 · 총 40문제</div>
+    </button>
+    <button class="grade-btn" onclick="startGame('lv5')">
+      <div class="gt">5급 신습</div>
+      <div class="gd">5급 신습 200자 (6급 미포함) · 총 40문제</div>
+    </button>
+    <button class="grade-btn" onclick="startGame('all')">
+      <div class="gt">5+6급 전체</div>
+      <div class="gd">6급 300자 + 5급 신습 200자 · 총 40문제</div>
+    </button>
+    <p style="font-size:11px;color:var(--sub);margin-top:20px;">
+      한자읽기 20 · 문장객관식 10 · 문장단답식 10
+    </p>
   </div>
 </div>
 
+<!-- ② 퀴즈 화면 -->
+<div id="quiz-screen" style="display:none;flex-direction:column;flex:1;">
+  <div id="progress-bar-wrap"><div id="progress-bar-fill"></div></div>
+  <div id="header">
+    <span id="lbl-progress">문제 1 / 40</span>
+    <span id="lbl-score">정답 0</span>
+  </div>
+  <div id="type-badge"><span id="badge" class="badge badge-char">한자 읽기</span></div>
+  <div id="card">
+    <div id="lbl-prompt"></div>
+    <div id="lbl-hanja"></div>
+    <div id="sentence-wrap"><p id="sentence-text" class="sent-text"></p></div>
+  </div>
+  <div id="feedback"></div>
+  <div id="options">
+    <button class="opt-btn" id="opt0" onclick="checkMC(0)"></button>
+    <button class="opt-btn" id="opt1" onclick="checkMC(1)"></button>
+    <button class="opt-btn" id="opt2" onclick="checkMC(2)"></button>
+    <button class="opt-btn" id="opt3" onclick="checkMC(3)"></button>
+  </div>
+  <div id="sa-wrap">
+    <input type="text" id="sa-input" placeholder="한글로 입력 후 제출" autocomplete="off"
+           autocorrect="off" autocapitalize="off" spellcheck="false">
+  </div>
+  <button id="btn-submit" onclick="checkSA()">제출</button>
+  <button id="btn-confirm" onclick="nextQuestion()"></button>
+  <div class="spacer"></div>
+</div>
+
+<!-- ③ 결과 화면 -->
+<div id="result" style="display:none;flex-direction:column;flex:1;">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+    <h1>퀴즈 완료!</h1>
+    <div class="res-big" id="res-total"></div>
+    <div class="res-sub" id="res-outof"></div>
+    <div class="res-breakdown">
+      <div class="res-row"><span class="label">한자 읽기 (객관식)</span><span class="val" id="r-char"></span></div>
+      <div class="res-row"><span class="label">문장 읽기 (객관식)</span><span class="val" id="r-mc"></span></div>
+      <div class="res-row"><span class="label">문장 읽기 (단답식)</span><span class="val" id="r-sa"></span></div>
+    </div>
+    <div class="res-grade" id="res-grade"></div>
+    <div class="res-msg"   id="res-msg"></div>
+    <div>
+      <button id="btn-restart" onclick="restartSameGrade()">다시 시작</button>
+      <button id="btn-grade"   onclick="goGradeSelect()">급수 변경</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
 <script>
-// ── data ──────────────────────────────────────────────────────────────────
-// [char, meaning, reading, isRed]
-const DATA = [
-  ["家","집","가",0],["歌","노래","가",0],["各","각각","각",1],
-  ["角","뿔","각",0],["間","사이","간",0],["感","느낄","감",1],
-  ["強","강할","강",0],["江","강","강",0],["開","열","개",1],
-  ["車","수레","차",0],["京","서울","경",1],["界","지경","계",1],
-  ["計","셀","계",0],["古","옛","고",0],["苦","쓸","고",1],
-  ["高","높을","고",0],["公","공평할","공",0],["共","한가지","공",1],
-  ["功","공","공",1],["工","장인","공",0],["空","빌","공",0],
-  ["果","실과","과",0],["科","과목","과",1],["光","빛","광",1],
-  ["交","사귈","교",0],["敎","가르칠","교",0],["校","학교","교",0],
-  ["區","구분할","구",0],["球","공","구",0],["口","입","구",0],
-  ["九","아홉","구",0],["國","나라","국",0],["郡","고을","군",1],
-  ["軍","군사","군",0],["根","뿌리","근",1],["近","가까울","근",0],
-  ["今","이제","금",0],["金","쇠","금",0],["急","급할","급",1],
-  ["級","등급","급",1],["旗","기","기",0],["氣","기운","기",0],
-  ["記","기록할","기",0],["男","사내","남",0],["南","남녘","남",0],
-  ["內","안","내",0],["女","계집","녀",0],["年","해","년",0],
-  ["農","농사","농",0],["多","많을","다",0],["短","짧을","단",1],
-  ["答","대답","답",1],["堂","집","당",1],["代","대신할","대",1],
-  ["對","대할","대",1],["待","기다릴","대",1],["大","큰","대",0],
-  ["圖","그림","도",1],["度","법도","도",1],["道","길","도",0],
-  ["讀","읽을","독",1],["童","아이","동",0],["冬","겨울","동",0],
-  ["動","움직일","동",0],["同","한가지","동",0],["洞","골","동",0],
-  ["東","동녘","동",0],["頭","머리","두",1],["等","무리","등",1],
-  ["登","오를","등",0],["樂","즐길","락",0],["來","올","래",0],
-  ["力","힘","력",0],["例","법식","례",1],["禮","예도","례",1],
-  ["路","길","로",1],["老","늙을","로",0],["綠","푸를","록",1],
-  ["六","여섯","륙",0],["利","이할","리",1],["李","오얏","리",1],
-  ["理","다스릴","리",1],["里","마을","리",0],["林","수풀","림",0],
-  ["立","설","립",0],["萬","일만","만",0],["每","매양","매",0],
-  ["面","낯","면",0],["明","밝을","명",1],["名","이름","명",0],
-  ["命","목숨","명",0],["母","어미","모",0],["目","눈","목",0],
-  ["木","나무","목",0],["聞","들을","문",0],["問","물을","문",0],
-  ["文","글월","문",0],["門","문","문",0],["物","물건","물",0],
-  ["米","쌀","미",0],["美","아름다울","미",1],["民","백성","민",0],
-  ["朴","성","박",1],["半","반","반",1],["反","돌이킬","반",1],
-  ["班","나눌","반",1],["發","필","발",1],["放","놓을","방",1],
-  ["方","모","방",0],["百","일백","백",0],["白","흰","백",0],
-  ["番","차례","번",1],["別","나눌","별",1],["病","병","병",1],
-  ["服","옷","복",1],["本","근본","본",0],["部","떼","부",1],
-  ["夫","지아비","부",0],["父","아비","부",0],["北","북녘","북",0],
-  ["分","나눌","분",0],["不","아닐","불",0],["使","부릴","사",1],
-  ["死","죽을","사",0],["社","모일","사",1],["事","일","사",0],
-  ["四","넉","사",0],["算","셈","산",1],["山","메","산",0],
-  ["三","석","삼",0],["上","윗","상",0],["色","빛","색",0],
-  ["生","날","생",0],["書","글","서",1],["西","서녘","서",0],
-  ["席","자리","석",1],["石","돌","석",0],["夕","저녁","석",0],
-  ["線","줄","선",1],["先","먼저","선",0],["雪","눈","설",0],
-  ["成","이룰","성",1],["省","살필","성",1],["姓","성","성",0],
-  ["世","인간","세",0],["消","사라질","소",1],["少","적을","소",0],
-  ["所","바","소",0],["小","작을","소",0],["速","빠를","속",1],
-  ["孫","손자","손",1],["樹","나무","수",1],["手","손","수",0],
-  ["數","셈","수",1],["水","물","수",0],["術","재주","술",1],
-  ["習","익힐","습",1],["勝","이길","승",1],["始","비로소","시",1],
-  ["市","저자","시",0],["時","때","시",0],["式","법","식",1],
-  ["植","심을","식",1],["食","밥","식",0],["信","믿을","신",1],
-  ["新","새","신",1],["神","귀신","신",1],["身","몸","신",0],
-  ["失","잃을","실",0],["室","집","실",1],["心","마음","심",0],
-  ["十","열","십",0],["安","편안","안",0],["愛","사랑","애",1],
-  ["夜","밤","야",0],["野","들","야",0],["弱","약할","약",1],
-  ["藥","약","약",1],["洋","큰바다","양",0],["陽","볕","양",1],
-  ["語","말씀","어",0],["言","말씀","언",0],["業","업","업",0],
-  ["然","그럴","연",0],["永","길","영",0],["英","꽃부리","영",1],
-  ["午","낮","오",0],["五","다섯","오",0],["溫","따뜻할","온",1],
-  ["王","임금","왕",0],["外","바깥","외",0],["勇","날랠","용",1],
-  ["用","쓸","용",0],["右","오른","우",0],["運","옮길","운",1],
-  ["園","동산","원",1],["遠","멀","원",1],["月","달","월",0],
-  ["油","기름","유",1],["由","말미암을","유",0],["有","있을","유",0],
-  ["育","기를","육",0],["銀","은","은",1],["音","소리","음",0],
-  ["飮","마실","음",1],["邑","고을","읍",0],["意","뜻","의",0],
-  ["衣","옷","의",0],["醫","의원","의",1],["二","두","이",0],
-  ["人","사람","인",0],["一","한","일",0],["日","날","일",0],
-  ["入","들","입",0],["者","놈","자",1],["子","아들","자",0],
-  ["字","글자","자",0],["自","스스로","자",0],["作","지을","작",1],
-  ["昨","어제","작",1],["章","글","장",1],["場","마당","장",0],
-  ["長","긴","장",0],["在","있을","재",0],["才","재주","재",1],
-  ["戰","싸움","전",1],["全","온전","전",0],["前","앞","전",0],
-  ["電","번개","전",0],["定","정할","정",1],["庭","뜰","정",1],
-  ["正","바를","정",0],["第","차례","제",1],["題","제목","제",1],
-  ["弟","아우","제",0],["朝","아침","조",1],["祖","할아비","조",1],
-  ["族","겨레","족",1],["足","발","족",0],["左","왼","좌",0],
-  ["晝","낮","주",1],["注","부을","주",1],["主","주인","주",0],
-  ["住","살","주",0],["重","무거울","중",0],["中","가운데","중",0],
-  ["地","따","지",0],["紙","종이","지",1],["直","곧을","직",0],
-  ["集","모을","집",1],["窓","창","창",1],["千","일천","천",0],
-  ["天","하늘","천",0],["川","내","천",0],["淸","맑을","청",1],
-  ["靑","푸를","청",0],["體","몸","체",1],["草","풀","초",0],
-  ["村","마을","촌",0],["寸","마디","촌",0],["秋","가을","추",0],
-  ["春","봄","춘",0],["出","날","출",0],["親","친할","친",1],
-  ["七","일곱","칠",0],["太","클","태",0],["土","흙","토",0],
-  ["通","통할","통",1],["特","특별할","특",1],["八","여덟","팔",0],
-  ["便","편할","편",1],["平","평평할","평",1],["表","겉","표",1],
-  ["風","바람","풍",0],["下","아래","하",0],["夏","여름","하",0],
-  ["學","배울","학",0],["漢","한수/한나라","한",0],["韓","한국/나라","한",0],
-  ["合","합할","합",0],["海","바다","해",0],["幸","다행","행",1],
-  ["行","다닐","행",0],["向","향할","향",0],["現","나타날","현",1],
-  ["形","모양","형",0],["兄","형","형",0],["號","이름","호",1],
-  ["和","화할","화",1],["畫","그림","화",1],["花","꽃","화",0],
-  ["話","말씀","화",0],["火","불","화",0],["活","살","활",0],
-  ["黃","누를","황",0],["會","모일","회",0],["孝","효도","효",0],
-  ["後","뒤","후",0],["訓","가르칠","훈",1],["休","쉴","휴",0],
+// ══════════════════════════════════════════════════════
+//  6급 300자  [char, meaning, reading, isRed]
+// ══════════════════════════════════════════════════════
+const DATA_6=[
+["家","집","가",0],["歌","노래","가",0],["各","각각","각",1],["角","뿔","각",0],
+["間","사이","간",0],["感","느낄","감",1],["強","강할","강",0],["江","강","강",0],
+["開","열","개",1],["車","수레","차",0],["京","서울","경",1],["界","지경","계",1],
+["計","셀","계",0],["古","옛","고",0],["苦","쓸","고",1],["高","높을","고",0],
+["公","공평할","공",0],["共","한가지","공",1],["功","공","공",1],["工","장인","공",0],
+["空","빌","공",0],["果","실과","과",0],["科","과목","과",1],["光","빛","광",1],
+["交","사귈","교",0],["敎","가르칠","교",0],["校","학교","교",0],["區","구분할","구",0],
+["球","공","구",0],["口","입","구",0],["九","아홉","구",0],["國","나라","국",0],
+["郡","고을","군",1],["軍","군사","군",0],["根","뿌리","근",1],["近","가까울","근",0],
+["今","이제","금",0],["金","쇠","금",0],["急","급할","급",1],["級","등급","급",1],
+["旗","기","기",0],["氣","기운","기",0],["記","기록할","기",0],["男","사내","남",0],
+["南","남녘","남",0],["內","안","내",0],["女","계집","녀",0],["年","해","년",0],
+["農","농사","농",0],["多","많을","다",0],["短","짧을","단",1],["答","대답","답",1],
+["堂","집","당",1],["代","대신할","대",1],["對","대할","대",1],["待","기다릴","대",1],
+["大","큰","대",0],["圖","그림","도",1],["度","법도","도",1],["道","길","도",0],
+["讀","읽을","독",1],["童","아이","동",0],["冬","겨울","동",0],["動","움직일","동",0],
+["同","한가지","동",0],["洞","골","동",0],["東","동녘","동",0],["頭","머리","두",1],
+["等","무리","등",1],["登","오를","등",0],["樂","즐길","락",0],["來","올","래",0],
+["力","힘","력",0],["例","법식","례",1],["禮","예도","례",1],["路","길","로",1],
+["老","늙을","로",0],["綠","푸를","록",1],["六","여섯","륙",0],["利","이할","리",1],
+["李","오얏","리",1],["理","다스릴","리",1],["里","마을","리",0],["林","수풀","림",0],
+["立","설","립",0],["萬","일만","만",0],["每","매양","매",0],["面","낯","면",0],
+["明","밝을","명",1],["名","이름","명",0],["命","목숨","명",0],["母","어미","모",0],
+["目","눈","목",0],["木","나무","목",0],["聞","들을","문",0],["問","물을","문",0],
+["文","글월","문",0],["門","문","문",0],["物","물건","물",0],["米","쌀","미",0],
+["美","아름다울","미",1],["民","백성","민",0],["朴","성","박",1],["半","반","반",1],
+["反","돌이킬","반",1],["班","나눌","반",1],["發","필","발",1],["放","놓을","방",1],
+["方","모","방",0],["百","일백","백",0],["白","흰","백",0],["番","차례","번",1],
+["別","나눌","별",1],["病","병","병",1],["服","옷","복",1],["本","근본","본",0],
+["部","떼","부",1],["夫","지아비","부",0],["父","아비","부",0],["北","북녘","북",0],
+["分","나눌","분",0],["不","아닐","불",0],["使","부릴","사",1],["死","죽을","사",0],
+["社","모일","사",1],["事","일","사",0],["四","넉","사",0],["算","셈","산",1],
+["山","메","산",0],["三","석","삼",0],["上","윗","상",0],["色","빛","색",0],
+["生","날","생",0],["書","글","서",1],["西","서녘","서",0],["席","자리","석",1],
+["石","돌","석",0],["夕","저녁","석",0],["線","줄","선",1],["先","먼저","선",0],
+["雪","눈","설",0],["成","이룰","성",1],["省","살필","성",1],["姓","성","성",0],
+["世","인간","세",0],["消","사라질","소",1],["少","적을","소",0],["所","바","소",0],
+["小","작을","소",0],["速","빠를","속",1],["孫","손자","손",1],["樹","나무","수",1],
+["手","손","수",0],["數","셈","수",1],["水","물","수",0],["術","재주","술",1],
+["習","익힐","습",1],["勝","이길","승",1],["始","비로소","시",1],["市","저자","시",0],
+["時","때","시",0],["式","법","식",1],["植","심을","식",1],["食","밥","식",0],
+["信","믿을","신",1],["新","새","신",1],["神","귀신","신",1],["身","몸","신",0],
+["失","잃을","실",0],["室","집","실",1],["心","마음","심",0],["十","열","십",0],
+["安","편안","안",0],["愛","사랑","애",1],["夜","밤","야",0],["野","들","야",0],
+["弱","약할","약",1],["藥","약","약",1],["洋","큰바다","양",0],["陽","볕","양",1],
+["語","말씀","어",0],["言","말씀","언",0],["業","업","업",0],["然","그럴","연",0],
+["永","길","영",0],["英","꽃부리","영",1],["午","낮","오",0],["五","다섯","오",0],
+["溫","따뜻할","온",1],["王","임금","왕",0],["外","바깥","외",0],["勇","날랠","용",1],
+["用","쓸","용",0],["右","오른","우",0],["運","옮길","운",1],["園","동산","원",1],
+["遠","멀","원",1],["月","달","월",0],["油","기름","유",1],["由","말미암을","유",0],
+["有","있을","유",0],["育","기를","육",0],["銀","은","은",1],["音","소리","음",0],
+["飮","마실","음",1],["邑","고을","읍",0],["意","뜻","의",0],["衣","옷","의",0],
+["醫","의원","의",1],["二","두","이",0],["人","사람","인",0],["一","한","일",0],
+["日","날","일",0],["入","들","입",0],["者","놈","자",1],["子","아들","자",0],
+["字","글자","자",0],["自","스스로","자",0],["作","지을","작",1],["昨","어제","작",1],
+["章","글","장",1],["場","마당","장",0],["長","긴","장",0],["在","있을","재",0],
+["才","재주","재",1],["戰","싸움","전",1],["全","온전","전",0],["前","앞","전",0],
+["電","번개","전",0],["定","정할","정",1],["庭","뜰","정",1],["正","바를","정",0],
+["第","차례","제",1],["題","제목","제",1],["弟","아우","제",0],["朝","아침","조",1],
+["祖","할아비","조",1],["族","겨레","족",1],["足","발","족",0],["左","왼","좌",0],
+["晝","낮","주",1],["注","부을","주",1],["主","주인","주",0],["住","살","주",0],
+["重","무거울","중",0],["中","가운데","중",0],["地","따","지",0],["紙","종이","지",1],
+["直","곧을","직",0],["集","모을","집",1],["窓","창","창",1],["千","일천","천",0],
+["天","하늘","천",0],["川","내","천",0],["淸","맑을","청",1],["靑","푸를","청",0],
+["體","몸","체",1],["草","풀","초",0],["村","마을","촌",0],["寸","마디","촌",0],
+["秋","가을","추",0],["春","봄","춘",0],["出","날","출",0],["親","친할","친",1],
+["七","일곱","칠",0],["太","클","태",0],["土","흙","토",0],["通","통할","통",1],
+["特","특별할","특",1],["八","여덟","팔",0],["便","편할","편",1],["平","평평할","평",1],
+["表","겉","표",1],["風","바람","풍",0],["下","아래","하",0],["夏","여름","하",0],
+["學","배울","학",0],["漢","한수/한나라","한",0],["韓","한국/나라","한",0],["合","합할","합",0],
+["海","바다","해",0],["幸","다행","행",1],["行","다닐","행",0],["向","향할","향",0],
+["現","나타날","현",1],["形","모양","형",0],["兄","형","형",0],["號","이름","호",1],
+["和","화할","화",1],["畫","그림","화",1],["花","꽃","화",0],["話","말씀","화",0],
+["火","불","화",0],["活","살","활",0],["黃","누를","황",0],["會","모일","회",0],
+["孝","효도","효",0],["後","뒤","후",0],["訓","가르칠","훈",1],["休","쉴","휴",0],
 ];
 
-const TOTAL = 20;
-const RED_W = 3;
+// ══════════════════════════════════════════════════════
+//  5급 신습 200자  [char, meaning, reading, 0]
+// ══════════════════════════════════════════════════════
+const DATA_5=[
+["加","더할","가",0],["可","옳을","가",0],["價","값","가",0],["改","고칠","개",0],
+["客","손님","객",0],["去","갈","거",0],["擧","들","거",0],["件","사건","건",0],
+["健","굳셀","건",0],["建","세울","건",0],["格","자리","격",0],["見","볼","견",0],
+["決","결정할","결",0],["結","맺을","결",0],["景","경치","경",0],["競","다툴","경",0],
+["輕","가벼울","경",0],["敬","공경할","경",0],["固","굳을","고",0],["考","상고할","고",0],
+["告","고할","고",0],["曲","굽을","곡",0],["課","매길","과",0],["過","지날","과",0],
+["觀","볼","관",0],["關","빗장","관",0],["廣","넓을","광",0],["橋","다리","교",0],
+["救","구원할","구",0],["具","갖출","구",0],["舊","예","구",0],["局","판","국",0],
+["貴","귀할","귀",0],["規","법","규",0],["給","공급할","급",0],["技","재주","기",0],
+["期","기약할","기",0],["汽","끊는김","기",0],["基","터","기",0],["己","몸","기",0],
+["吉","길할","길",0],["念","생각할","념",0],["能","능할","능",0],["壇","단","단",0],
+["團","둥글","단",0],["談","말씀","담",0],["當","마땅할","당",0],["德","덕","덕",0],
+["島","섬","도",0],["都","도읍","도",0],["到","이를","도",0],["獨","홀로","독",0],
+["落","떨어질","락",0],["朗","밝을","랑",0],["冷","찰","랭",0],["量","헤아릴","량",0],
+["良","어질","량",0],["旅","나그네","려",0],["歷","지낼","력",0],["練","익힐","련",0],
+["令","명령할","령",0],["領","다스릴","령",0],["勞","일할","로",0],["料","헤아릴","료",0],
+["流","흐를","류",0],["類","무리","류",0],["陸","뭍","륙",0],["馬","말","마",0],
+["末","끝","말",0],["亡","망할","망",0],["望","바랄","망",0],["買","살","매",0],
+["賣","팔","매",0],["無","없을","무",0],["倍","곱할","배",0],["法","법","법",0],
+["變","변할","변",0],["兵","군사","병",0],["福","복","복",0],["奉","받들","봉",0],
+["比","견줄","비",0],["費","쓸","비",0],["鼻","코","비",0],["氷","얼음","빙",0],
+["寫","베낄","사",0],["思","생각할","사",0],["査","조사할","사",0],["仕","벼슬","사",0],
+["史","역사","사",0],["士","선비","사",0],["産","낳을","산",0],["賞","상줄","상",0],
+["商","장사","상",0],["相","서로","상",0],["序","차례","서",0],["善","착할","선",0],
+["船","배","선",0],["選","가릴","선",0],["仙","신선","선",0],["鮮","고울","선",0],
+["說","말씀","설",0],["性","성품","성",0],["歲","해","세",0],["洗","씻을","세",0],
+["束","묶을","속",0],["首","머리","수",0],["宿","묵을","숙",0],["順","순할","순",0],
+["示","보일","시",0],["識","알","식",0],["臣","신하","신",0],["實","열매","실",0],
+["兒","아이","아",0],["惡","악할","악",0],["案","책상","안",0],["約","맺을","약",0],
+["養","기를","양",0],["漁","고기잡을","어",0],["魚","물고기","어",0],["億","억","억",0],
+["熱","더울","열",0],["葉","잎","엽",0],["屋","집","옥",0],["完","완전할","완",0],
+["曜","빛날","요",0],["要","중요할","요",0],["浴","목욕할","욕",0],["牛","소","우",0],
+["友","벗","우",0],["雨","비","우",0],["雲","구름","운",0],["雄","수컷","웅",0],
+["原","근원","원",0],["院","집","원",0],["願","바랄","원",0],["元","으뜸","원",0],
+["位","자리","위",0],["偉","클","위",0],["耳","귀","이",0],["以","써","이",0],
+["因","인할","인",0],["任","맡길","임",0],["再","두","재",0],["災","재앙","재",0],
+["材","재목","재",0],["財","재물","재",0],["爭","다툴","쟁",0],["貯","쌓을","저",0],
+["赤","붉을","적",0],["的","과녁","적",0],["傳","전할","전",0],["典","법","전",0],
+["展","펼","전",0],["切","끊을","절",0],["節","마디","절",0],["店","가게","점",0],
+["停","머무를","정",0],["情","뜻","정",0],["操","잡을","조",0],["調","고를","조",0],
+["卒","마칠","졸",0],["終","마칠","종",0],["種","씨앗","종",0],["罪","허물","죄",0],
+["州","고을","주",0],["週","주일","주",0],["止","그칠","지",0],["知","알","지",0],
+["質","바탕","질",0],["着","붙을","착",0],["參","참여할","참",0],["唱","노래부를","창",0],
+["責","꾸짖을","책",0],["鐵","쇠","철",0],["初","처음","초",0],["最","가장","최",0],
+["祝","빌","축",0],["充","채울","충",0],["致","이를","치",0],["則","법칙","칙",0],
+["他","다를","타",0],["打","칠","타",0],["卓","높을","탁",0],["炭","숯","탄",0],
+["宅","집","택",0],["板","널","판",0],["敗","패할","패",0],["品","물건","품",0],
+["必","반드시","필",0],["筆","붓","필",0],["河","물","하",0],["寒","찰","한",0],
+["害","해칠","해",0],["許","허락할","허",0],["湖","호수","호",0],["化","될","화",0],
+["患","근심","환",0],["效","본받을","효",0],["凶","흉할","흉",0],["黑","검을","흑",0],
+];
 
-let questions = [], qIdx = 0, score = 0, correctIdx = 0, answered = false;
+// ══════════════════════════════════════════════════════
+//  6급 문장 읽기 30문제  {t, a, w}
+//  두 글자 모두 6급 한자
+// ══════════════════════════════════════════════════════
+const SENT_6=[
+  {t:"오늘 {國語} 시험이 있습니다.",        a:"국어", w:["국문","어국","한어"]},
+  {t:"매일 {運動}을 하면 건강해집니다.",    a:"운동", w:["운행","동운","운전"]},
+  {t:"그는 {天才}라고 불립니다.",            a:"천재", w:["천성","재천","천지"]},
+  {t:"우리는 {世界} 평화를 원합니다.",      a:"세계", w:["세상","계세","세대"]},
+  {t:"봄이 되면 {花草}가 핍니다.",          a:"화초", w:["화원","초화","화단"]},
+  {t:"우리는 {平和}로운 세상을 꿈꿉니다.", a:"평화", w:["평온","화평","평등"]},
+  {t:"도시의 {人口}가 계속 늘고 있습니다.",a:"인구", w:["인원","구인","인수"]},
+  {t:"그는 {勇氣}있게 발표했습니다.",       a:"용기", w:["용맹","기용","용력"]},
+  {t:"산에서 {空氣}가 맑습니다.",           a:"공기", w:["공간","기공","공중"]},
+  {t:"{家族}이 함께 식사를 합니다.",        a:"가족", w:["가정","족가","가문"]},
+  {t:"그림을 보고 {感動}받았습니다.",       a:"감동", w:["감사","동감","감격"]},
+  {t:"학교에서 {音樂} 수업을 들었습니다.", a:"음악", w:["음성","악음","음률"]},
+  {t:"이 길은 {南北}으로 이어져 있습니다.",a:"남북", w:["남동","북남","남쪽"]},
+  {t:"나라를 위해 {軍人}이 됩니다.",        a:"군인", w:["군사","인군","군관"]},
+  {t:"{自信}있는 사람이 되고 싶습니다.",   a:"자신", w:["자존","신자","자만"]},
+  {t:"비가 온 뒤 {天地}가 맑아졌습니다.", a:"천지", w:["천하","지천","천상"]},
+  {t:"도서관에서 {讀書}를 즐깁니다.",      a:"독서", w:["독립","서독","독학"]},
+  {t:"선생님의 {敎訓}을 가슴에 새겼습니다.",a:"교훈",w:["교육","훈교","교시"]},
+  {t:"자동차가 {速度}를 높였습니다.",       a:"속도", w:["속력","도속","속행"]},
+  {t:"아빠가 {電話}를 받으셨습니다.",       a:"전화", w:["전기","화전","전신"]},
+  {t:"{動物}원에서 사자를 보았습니다.",    a:"동물", w:["동식","물동","동산"]},
+  {t:"화분에 {植物}을 심었습니다.",         a:"식물", w:["식목","물식","식품"]},
+  {t:"{父母}님께 감사드립니다.",            a:"부모", w:["부녀","모부","부자"]},
+  {t:"{兄弟}가 사이좋게 지냅니다.",        a:"형제", w:["형수","제형","형부"]},
+  {t:"{男女} 학생이 함께 공부합니다.",     a:"남녀", w:["남자","여남","남성"]},
+  {t:"나무가 {東西}로 쓰러졌습니다.",      a:"동서", w:["동남","서동","동북"]},
+  {t:"일기장에 {日記}를 씁니다.",           a:"일기", w:["일지","기일","일과"]},
+  {t:"아침에 {日出}을 보았습니다.",         a:"일출", w:["일몰","출일","일광"]},
+  {t:"{歌手}가 노래를 부릅니다.",           a:"가수", w:["가창","수가","가요"]},
+  {t:"{大學}에 진학했습니다.",              a:"대학", w:["대교","학대","대원"]},
+];
 
-// ── sampling ──────────────────────────────────────────────────────────────
-function sampleQuestions() {
-  const pool = [];
-  DATA.forEach(d => {
-    const w = d[3] ? RED_W : 1;
-    for (let i = 0; i < w; i++) pool.push(d);
-  });
-  // Fisher-Yates shuffle
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  const seen = new Set(), result = [];
-  for (const d of pool) {
-    if (!seen.has(d[0])) { seen.add(d[0]); result.push(d); }
-    if (result.length === TOTAL) break;
-  }
-  return result;
-}
+// ══════════════════════════════════════════════════════
+//  5급 문장 읽기 50문제
+//  한 글자 이상이 5급 신습 200자
+// ══════════════════════════════════════════════════════
+const SENT_5=[
+  {t:"우리나라의 {歷史}를 공부합니다.",       a:"역사", w:["역도","사력","사기"]},
+  {t:"우리 가족은 {幸福}하게 살고 있습니다.", a:"행복", w:["행운","복행","행동"]},
+  {t:"그는 {最高}의 성적을 받았습니다.",       a:"최고", w:["최대","고최","최상"]},
+  {t:"선생님께서 {決定}을 내리셨습니다.",      a:"결정", w:["결심","정결","결과"]},
+  {t:"선생님께서 {重要}한 말씀을 하셨습니다.",a:"중요", w:["중대","요중","중심"]},
+  {t:"사람들이 {廣場}에 모였습니다.",          a:"광장", w:["광대","장광","광야"]},
+  {t:"새로운 {技術}이 세상을 바꿉니다.",       a:"기술", w:["기법","술기","기능"]},
+  {t:"어머니께서 {料理}를 만드셨습니다.",      a:"요리", w:["료음","리요","요식"]},
+  {t:"오늘은 {火曜}일 수업이 있습니다.",       a:"화요", w:["화성","요화","화일"]},
+  {t:"친구와 {友情}을 나눕니다.",              a:"우정", w:["우애","정우","우인"]},
+  {t:"그의 {知識}이 넓습니다.",               a:"지식", w:["지혜","식지","지학"]},
+  {t:"{選手}들이 열심히 경기합니다.",          a:"선수", w:["선발","수선","선생"]},
+  {t:"{良心}에 따라 행동합니다.",              a:"양심", w:["양능","심양","양호"]},
+  {t:"세상이 빠르게 {變化}합니다.",            a:"변화", w:["변동","화변","변신"]},
+  {t:"{感情}을 솔직히 표현합니다.",            a:"감정", w:["감각","정감","감격"]},
+  {t:"그는 {能力}이 뛰어납니다.",              a:"능력", w:["능률","력능","능통"]},
+  {t:"{順序}대로 줄을 섭니다.",               a:"순서", w:["순위","서순","순리"]},
+  {t:"{調和}를 이루며 살아갑니다.",            a:"조화", w:["조율","화조","조절"]},
+  {t:"{規則}을 잘 지켜야 합니다.",             a:"규칙", w:["규정","칙규","규범"]},
+  {t:"숙제가 {必要}합니다.",                   a:"필요", w:["필수","요필","필연"]},
+  {t:"{道德}은 중요한 가치입니다.",            a:"도덕", w:["도리","덕도","도의"]},
+  {t:"{約束}을 꼭 지켜야 합니다.",             a:"약속", w:["약정","속약","약조"]},
+  {t:"{基本}을 잘 배워야 합니다.",             a:"기본", w:["기초","본기","기원"]},
+  {t:"선생님께 {告白}했습니다.",               a:"고백", w:["고발","백고","고지"]},
+  {t:"새 노래가 {流行}합니다.",                a:"유행", w:["유통","행유","유동"]},
+  {t:"{改善}할 점을 찾았습니다.",              a:"개선", w:["개량","선개","개혁"]},
+  {t:"호텔 {客室}에서 쉽니다.",               a:"객실", w:["객관","실객","객석"]},
+  {t:"{結果}를 기다립니다.",                   a:"결과", w:["결말","과결","결론"]},
+  {t:"{光景}이 아름답습니다.",                 a:"광경", w:["광명","경광","광야"]},
+  {t:"어른을 {敬老}합니다.",                   a:"경로", w:["경의","로경","경배"]},
+  {t:"{過去}를 돌아봅니다.",                   a:"과거", w:["과정","거과","과제"]},
+  {t:"{關心}을 가지고 지켜봅니다.",            a:"관심", w:["관련","심관","관찰"]},
+  {t:"{給食}을 맛있게 먹었습니다.",            a:"급식", w:["급수","식급","급여"]},
+  {t:"{技能}을 개발합니다.",                   a:"기능", w:["기술","능기","기량"]},
+  {t:"{當然}히 해야 할 일입니다.",             a:"당연", w:["당위","연당","당수"]},
+  {t:"{都市}에 사람이 많습니다.",              a:"도시", w:["도읍","시도","도심"]},
+  {t:"{到着}하여 짐을 풀었습니다.",            a:"도착", w:["도달","착도","도입"]},
+  {t:"{獨立}을 위해 싸웠습니다.",              a:"독립", w:["독자","립독","독행"]},
+  {t:"{落葉}이 바람에 날립니다.",              a:"낙엽", w:["낙하","엽락","낙관"]},
+  {t:"가족과 {旅行}을 갔습니다.",              a:"여행", w:["여정","행여","여객"]},
+  {t:"일꾼들이 {勞動}합니다.",                 a:"노동", w:["노력","동노","노인"]},
+  {t:"{材料}를 구입했습니다.",                 a:"재료", w:["재물","료재","재목"]},
+  {t:"{原因}을 찾아야 합니다.",                a:"원인", w:["원리","인원","원칙"]},
+  {t:"그는 {偉大}한 사람입니다.",              a:"위대", w:["위인","대위","위용"]},
+  {t:"{質問}이 있으면 손을 드세요.",           a:"질문", w:["질의","문질","질답"]},
+  {t:"{責任}감이 강한 사람입니다.",            a:"책임", w:["책무","임책","책벌"]},
+  {t:"{鐵道}를 따라 달립니다.",               a:"철도", w:["철길","도철","철선"]},
+  {t:"{初等}학교에 입학했습니다.",             a:"초등", w:["초급","등초","초반"]},
+  {t:"{效果}가 나타났습니다.",                 a:"효과", w:["효율","과효","효능"]},
+  {t:"병원에서 {患者}를 돕습니다.",            a:"환자", w:["환경","자환","환난"]},
+];
 
-// ── game flow ─────────────────────────────────────────────────────────────
-function startGame() {
-  questions = sampleQuestions();
-  qIdx = 0; score = 0; answered = false;
-  document.getElementById('result').style.display = 'none';
-  document.getElementById('quiz-screen').style.display = 'flex';
+const ALL_CHAR=[...DATA_6,...DATA_5];
+const TOTAL=40, CHAR_N=20, MC_N=10, SA_N=10;
+const RED_W=3;
+
+let questions=[],qIdx=0,score=0,charScore=0,mcScore=0,saScore=0;
+let answered=false,correctIdx=0,currentGrade=null;
+
+// ── 급수 선택 ────────────────────────────────────────
+function startGame(grade){
+  currentGrade=grade;
+  document.getElementById('grade-screen').style.display='none';
+  document.getElementById('quiz-screen').style.display='flex';
+  questions=sampleQuestions(grade);
+  qIdx=0;score=0;charScore=0;mcScore=0;saScore=0;answered=false;
   showQuestion();
 }
+function restartSameGrade(){ startGame(currentGrade); }
+function goGradeSelect(){
+  document.getElementById('result').style.display='none';
+  document.getElementById('grade-screen').style.display='flex';
+}
 
-function showQuestion() {
-  if (qIdx >= TOTAL) { showResult(); return; }
+// ── 문제 샘플링 ───────────────────────────────────────
+function sampleQuestions(grade){
+  const charData = grade==='lv6'?DATA_6 : grade==='lv5'?DATA_5 : ALL_CHAR;
+  const sentData = grade==='lv6'?SENT_6 : grade==='lv5'?SENT_5 : [...SENT_6,...SENT_5];
 
-  const q = questions[qIdx];
-  answered = false;
+  // 한자 읽기 20개
+  const pool=[];
+  charData.forEach(d=>{ const w=d[3]?RED_W:1; for(let i=0;i<w;i++) pool.push(d); });
+  shuffle(pool);
+  const seen=new Set(),charQs=[];
+  for(const d of pool){
+    if(!seen.has(d[0])){ seen.add(d[0]); charQs.push({type:'char',d}); }
+    if(charQs.length===CHAR_N) break;
+  }
 
-  // header
-  document.getElementById('lbl-progress').textContent = `문제 ${qIdx + 1} / ${TOTAL}`;
-  document.getElementById('lbl-score').textContent = `정답 ${score}`;
-  document.getElementById('progress-bar-fill').style.width = `${qIdx / TOTAL * 100}%`;
+  // 문장 MC 10개 + SA 10개 (중복 없이)
+  const sh=shuffle([...sentData]);
+  const mcQs=sh.slice(0,MC_N).map(d=>({type:'mc_sent',d}));
+  const saQs=sh.slice(MC_N,MC_N+SA_N).map(d=>({type:'sa_sent',d}));
 
-  // card
-  document.getElementById('lbl-hanja').textContent = q[0];
-  document.getElementById('feedback').textContent = '';
-  document.getElementById('feedback').style.color = 'var(--sub)';
+  return shuffle([...charQs,...mcQs,...saQs]);
+}
 
-  // hide confirm
-  const confirmBtn = document.getElementById('btn-confirm');
-  confirmBtn.style.display = 'none';
+// ── 문제 표시 ─────────────────────────────────────────
+function showQuestion(){
+  if(qIdx>=TOTAL){ showResult(); return; }
+  const q=questions[qIdx];
+  answered=false;
+  document.getElementById('lbl-progress').textContent=`문제 ${qIdx+1} / ${TOTAL}`;
+  document.getElementById('lbl-score').textContent=`정답 ${score}`;
+  document.getElementById('progress-bar-fill').style.width=`${qIdx/TOTAL*100}%`;
+  document.getElementById('btn-confirm').style.display='none';
+  document.getElementById('feedback').textContent='';
 
-  // build options
-  const correctLabel = `${q[1]}  ${q[2]}`;
-  const candidates = DATA.filter(d => d[0] !== q[0] && `${d[1]}  ${d[2]}` !== correctLabel);
-  const wrongs = shuffle(candidates).slice(0, 3);
-  const opts = shuffle([...wrongs.map(d => `${d[1]}  ${d[2]}`), correctLabel]);
-  correctIdx = opts.indexOf(correctLabel);
+  // 공통: 숨기기
+  document.getElementById('options').style.display='grid';
+  document.getElementById('sa-wrap').style.display='none';
+  document.getElementById('btn-submit').style.display='none';
 
-  for (let i = 0; i < 4; i++) {
-    const btn = document.getElementById(`opt${i}`);
-    btn.textContent = opts[i];
-    btn.className = 'opt-btn';
-    btn.disabled = false;
+  if(q.type==='char')     showChar(q.d);
+  else if(q.type==='mc_sent') showMC(q.d);
+  else                    showSA(q.d);
+}
+
+function showChar(d){
+  setBadge('한자 읽기','badge-char');
+  document.getElementById('lbl-prompt').textContent='이 한자의 뜻과 소리는?';
+  document.getElementById('lbl-hanja').textContent=d[0];
+  document.getElementById('lbl-hanja').style.display='';
+  document.getElementById('sentence-wrap').style.display='none';
+
+  const corr=`${d[1]}  ${d[2]}`;
+  const pool=ALL_CHAR.filter(x=>x[0]!==d[0]&&`${x[1]}  ${x[2]}`!==corr);
+  const opts=shuffle([...shuffle(pool).slice(0,3).map(x=>`${x[1]}  ${x[2]}`),corr]);
+  correctIdx=opts.indexOf(corr);
+  setOpts(opts);
+}
+
+function showMC(d){
+  setBadge('문장 읽기 (객관식)','badge-mc');
+  setSent(d);
+  const opts=shuffle([...d.w,d.a]);
+  correctIdx=opts.indexOf(d.a);
+  setOpts(opts);
+}
+
+function showSA(d){
+  setBadge('문장 읽기 (단답식)','badge-sa');
+  setSent(d);
+  document.getElementById('options').style.display='none';
+  document.getElementById('sa-wrap').style.display='block';
+  document.getElementById('btn-submit').style.display='block';
+  const inp=document.getElementById('sa-input');
+  inp.value=''; inp.disabled=false;
+  setTimeout(()=>inp.focus(),100);
+}
+
+function setSent(d){
+  document.getElementById('lbl-prompt').textContent='파란색 한자 단어의 소리는?';
+  document.getElementById('lbl-hanja').style.display='none';
+  document.getElementById('sentence-wrap').style.display='';
+  document.getElementById('sentence-text').innerHTML=
+    d.t.replace(/\{(.+?)\}/g,(_,w)=>`<span class="word-hl">${w}</span>`);
+}
+
+function setOpts(opts){
+  for(let i=0;i<4;i++){
+    const b=document.getElementById(`opt${i}`);
+    b.textContent=opts[i]; b.className='opt-btn'; b.disabled=false;
   }
 }
-
-// ── sound effects ─────────────────────────────────────────────────────────
-function playCorrect() {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  [[880, 0.00, 0.18], [1109, 0.20, 0.38]].forEach(([freq, start, end]) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.35, ctx.currentTime + start);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + end);
-    osc.start(ctx.currentTime + start);
-    osc.stop(ctx.currentTime + end);
-  });
+function setBadge(text,cls){
+  const b=document.getElementById('badge');
+  b.textContent=text; b.className='badge '+cls;
 }
 
-function playWrong() {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.connect(gain); gain.connect(ctx.destination);
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(220, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.3);
-  gain.gain.setValueAtTime(0.3, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + 0.3);
-}
+// ── 정답 체크 (MC) ────────────────────────────────────
+function checkMC(idx){
+  if(answered) return;
+  answered=true;
+  for(let i=0;i<4;i++) document.getElementById(`opt${i}`).disabled=true;
 
-function checkAnswer(idx) {
-  if (answered) return;
-  answered = true;
-
-  for (let i = 0; i < 4; i++) document.getElementById(`opt${i}`).disabled = true;
-
-  const q = questions[qIdx];
-  const confirmBtn = document.getElementById('btn-confirm');
-
-  if (idx === correctIdx) {
-    score++;
+  const q=questions[qIdx];
+  const isChar=q.type==='char';
+  const d=q.d;
+  const label=isChar?`${d[0]} = ${d[1]}  ${d[2]}`
+                     :`${d.t.match(/\{(.+?)\}/)[1]} = ${d.a}`;
+  if(idx===correctIdx){
+    score++; if(isChar) charScore++; else mcScore++;
     playCorrect();
     document.getElementById(`opt${idx}`).classList.add('correct');
-    document.getElementById('feedback').textContent = `정답!  ${q[0]} = ${q[1]}  ${q[2]}`;
-    document.getElementById('feedback').style.color = 'var(--correct)';
-    confirmBtn.textContent = '다음 문제  →';
+    showFB(`정답!  ${label}`,'var(--correct)');
+    document.getElementById('btn-confirm').textContent='다음 문제  →';
   } else {
     playWrong();
     document.getElementById(`opt${idx}`).classList.add('wrong');
     document.getElementById(`opt${correctIdx}`).classList.add('correct');
-    document.getElementById('feedback').textContent = `오답!  정답:  ${q[0]} = ${q[1]}  ${q[2]}`;
-    document.getElementById('feedback').style.color = 'var(--wrong)';
-    confirmBtn.textContent = '확인';
+    showFB(`오답!  정답:  ${label}`,'var(--wrong)');
+    document.getElementById('btn-confirm').textContent='확인';
   }
-
-  document.getElementById('lbl-score').textContent = `정답 ${score}`;
-  confirmBtn.style.display = 'block';
+  document.getElementById('lbl-score').textContent=`정답 ${score}`;
+  document.getElementById('btn-confirm').style.display='block';
 }
 
-function nextQuestion() {
-  qIdx++;
-  showQuestion();
-}
+// ── 정답 체크 (SA) ────────────────────────────────────
+function checkSA(){
+  if(answered) return;
+  answered=true;
+  const inp=document.getElementById('sa-input');
+  const typed=inp.value.trim();
+  const d=questions[qIdx].d;
+  const word=d.t.match(/\{(.+?)\}/)[1];
+  inp.disabled=true;
+  document.getElementById('btn-submit').style.display='none';
 
-// ── result ────────────────────────────────────────────────────────────────
-function showResult() {
-  document.getElementById('quiz-screen').style.display = 'none';
-  const res = document.getElementById('result');
-  res.style.display = 'flex';
-
-  const pct = Math.round(score / TOTAL * 100);
-  let grade, color, msg;
-  if (pct >= 90)      { grade = '우수 🎉';       color = 'var(--correct)'; msg = '6급 합격 확실! 정말 잘 하셨어요.'; }
-  else if (pct >= 70) { grade = '양호 👍';       color = '#f39c12';        msg = '조금만 더 연습하면 완벽해요!'; }
-  else if (pct >= 50) { grade = '보통 📚';       color = 'var(--accent)';  msg = '틀린 한자를 다시 복습해 보세요.'; }
-  else                { grade = '노력 필요 💪';  color = 'var(--wrong)';   msg = '기초부터 차근차근 공부해 봐요!'; }
-
-  document.getElementById('res-score').textContent = score;
-  document.getElementById('res-outof').textContent = `/ ${TOTAL}문제  (정답률 ${pct}%)`;
-  document.getElementById('res-grade').textContent = grade;
-  document.getElementById('res-grade').style.color = color;
-  document.getElementById('res-msg').textContent = msg;
-
-  document.getElementById('progress-bar-fill').style.width = '100%';
-}
-
-// ── utils ─────────────────────────────────────────────────────────────────
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+  if(typed===d.a){
+    saScore++; score++;
+    playCorrect();
+    inp.style.borderColor='var(--correct)';
+    showFB(`정답!  ${word} = ${d.a}`,'var(--correct)');
+    document.getElementById('btn-confirm').textContent='다음 문제  →';
+  } else {
+    playWrong();
+    inp.style.borderColor='var(--wrong)';
+    showFB(`오답!  정답:  ${word} = ${d.a}`,'var(--wrong)');
+    document.getElementById('btn-confirm').textContent='확인';
   }
-  return a;
+  document.getElementById('lbl-score').textContent=`정답 ${score}`;
+  document.getElementById('btn-confirm').style.display='block';
 }
 
-// ── service worker ────────────────────────────────────────────────────────
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+function nextQuestion(){ qIdx++; showQuestion(); }
+function showFB(msg,color){
+  const f=document.getElementById('feedback');
+  f.textContent=msg; f.style.color=color;
 }
 
-// ── start ─────────────────────────────────────────────────────────────────
-startGame();
+// ── 결과 화면 ─────────────────────────────────────────
+function showResult(){
+  document.getElementById('quiz-screen').style.display='none';
+  const res=document.getElementById('result');
+  res.style.display='flex';
+  document.getElementById('progress-bar-fill').style.width='100%';
+
+  const pct=Math.round(score/TOTAL*100);
+  document.getElementById('res-total').textContent=score;
+  document.getElementById('res-outof').textContent=`/ ${TOTAL}문제  (정답률 ${pct}%)`;
+  document.getElementById('r-char').textContent=`${charScore} / ${CHAR_N}`;
+  document.getElementById('r-mc').textContent=`${mcScore} / ${MC_N}`;
+  document.getElementById('r-sa').textContent=`${saScore} / ${SA_N}`;
+
+  let grade,color,msg;
+  if(pct>=90)      {grade='우수 🎉';color='var(--correct)';msg='합격 확실! 정말 잘 하셨어요.';}
+  else if(pct>=70) {grade='양호 👍';color='#f39c12';       msg='조금만 더 연습하면 완벽해요!';}
+  else if(pct>=50) {grade='보통 📚';color='var(--accent)'; msg='틀린 한자를 다시 복습해 보세요.';}
+  else             {grade='노력 필요 💪';color='var(--wrong)';msg='기초부터 차근차근 공부해 봐요!';}
+  document.getElementById('res-grade').textContent=grade;
+  document.getElementById('res-grade').style.color=color;
+  document.getElementById('res-msg').textContent=msg;
+}
+
+// ── 효과음 ───────────────────────────────────────────
+function playCorrect(){
+  try{
+    const c=new(window.AudioContext||window.webkitAudioContext)();
+    [[880,0,.18],[1109,.2,.38]].forEach(([f,s,e])=>{
+      const o=c.createOscillator(),g=c.createGain();
+      o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=f;
+      g.gain.setValueAtTime(.35,c.currentTime+s);
+      g.gain.exponentialRampToValueAtTime(.001,c.currentTime+e);
+      o.start(c.currentTime+s);o.stop(c.currentTime+e);
+    });
+  }catch(e){}
+}
+function playWrong(){
+  try{
+    const c=new(window.AudioContext||window.webkitAudioContext)();
+    const o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.type='sawtooth';
+    o.frequency.setValueAtTime(220,c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(110,c.currentTime+.3);
+    g.gain.setValueAtTime(.3,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.3);
+    o.start(c.currentTime);o.stop(c.currentTime+.3);
+  }catch(e){}
+}
+
+// ── 유틸 ─────────────────────────────────────────────
+function shuffle(a){
+  const b=[...a];
+  for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}
+  return b;
+}
+
+// ── Enter 키로 SA 제출 ────────────────────────────────
+document.getElementById('sa-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter') checkSA();
+});
+
+// ── PWA ──────────────────────────────────────────────
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>
